@@ -1,0 +1,27 @@
+目标：了解Kubernetes集群；了解Minikube
+
+Kubernetes集群：
+    Kubernetes用于协调高度可用的计算机集群，这些计算机群集被连接作为单个单元工作。
+    kubernetes的抽象性允许将容器化的应用程序部署到集群，而不必专门将其绑定到单个计算机。
+    为了利用这种新的部署模型，应用程序需要以将他们与各个主机分离的方式打包：他们需要被
+    容器化。容器化应用程序比过去的部署模型更灵活和可用，其中应用程序直接安装到特定机器上，
+    作为深入集成到主机中的软件包。Kubernetes在一个集群上以更有效的方式自动分发和调度容器
+    应用程序。
+    Kubernetes集群由两种类型的资源组成：
+        一个Master是集群的调度节点
+        Node是应用程序实际运行的工作节点
+    集群图见image1.jpg
+
+    Master负责管理集群：master协调集群中所有的活动，如调度应用程序、维护应用程序的所需
+                        状态、扩展应用程序和滚动更新。
+    节点是Kubernetes集群的工作机器，可以是物理机或虚拟机。每个工作节点都有一个Kubelet，它是
+    管理节点并与Kubernetes Master节点进行通信的代理。节点上还应具有处理容器操作的工作，例如
+    Docker或rkt。一个Kubernetes工作集群至少有三个节点。
+    在Kubernetes上部署应用程序时，告诉master启动应用程序容器。Master调度容器在集群的节点上
+    运行。节点使用Master公开的Kubernetes API与Master通信。用户也可以直接使用Kubernetes的API
+    与集群交互。
+    Kubernetes集群可以部署在物理机或虚拟机上。要开始使用Kubernetes开发，可以使用Minikube。
+    Minikube是一个轻量级的Kubernetes实现，会在本机创建一个虚拟机，并部署一个只包含一个节点
+    的简单集群。Minikube 适用于 Linux, Mac OS 和 Windows 系统。Minickube CLI提供了集群的
+    基本引导操作，包括启动、停止、状态和删除。为了完成此基本训练，需要使用预先安装了Minikube的
+    在线终端。

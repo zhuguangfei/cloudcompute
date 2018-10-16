@@ -1,0 +1,170 @@
+使用kubectl创建部署
+
+目标：了解应用程序部署
+      使用kubectl在Kubernetes上部署第一个应用程序
+
+Kubernetes部署：
+    一旦运行了Kubernetes集群，可以在其上部署容器化应用程序。可以创建一个Kubernetes Deployment。
+    Deployment负责创建和更新应用程序实例。创建Deployment后，Kubernetes master会将Deployment
+    创建的程序实例调度到集群中的各个节点。
+
+    创建应用程序实例后，Kubernetes部署控制器会持续监视这些实例。如果托管它的节点不可用或删除，则部署
+    控制器将替换实例。这提供了一种解决机器故障或维护的自愈机制。
+
+    在编排诞生前的世界中，通常会使用安装脚本启动应用程序，但他们并不能从机器故障中恢复。通过创建程序
+    实例并使其运行在跨界点的机器之间，Kubernetes部署提供了截然不同的应用管理方法。
+
+    示意图见image2.jpg
+
+    可以使用Kubernetes命令工具Kubectl创建和管理部署。Kuberctl使用KubernetesAPI与集群进行交互。
+    创建部署时，需要为应用程序制定容器镜像以及要运行的副本数。稍后可以通过更新部署来更改信息。
+
+使用服务发布应用程序：
+    目标：了解Kubernetes中的服务
+          了解标签和标签选择器对象如何与服务相关联
+          通过Service在Kubernetes集群外发布应用程序
+    Kubernetes服务概述：
+        Kubernetes Podes终有一死。Pods有一个生命周期。当工作节点死机时，节点上运行的Pod也将丢失。
+        一个ReplicationController可能会通过创建新的Pod以动态地将集群恢复到所需的状态，以保持应用
+        程序运行。例如：假如一个图像处理软件有三个副本。这些副本是可替代的，前端系统不应关心后端副本
+        即使Pod丢失并重建也不会更改。也就是说Kubernetes集群中的每个Pod都有一个不唯一的IP地址，即使
+        在同一个节点上的Pods也是如此，所以此时需要一种自动调整更改Pod的方法，以便应用程序继续运行。
+        服务：Kubernetes中服务是一个抽象对象，它定义了一组逻辑的Pods和一个访问他们的策略。服务让互相
+        依赖的Pod之间的耦合松动。服务想所有Kubernetes对象一样，由YAML(首选)或定义。
+
+        虽然每个Pod都有一个唯一的IP地址，但是这些IP不会在没有服务的情况向公开在集群之外。服务允许您的
+        应用程序接收流量。可以通过在ServiceSpec中指定类型。以不同方式显示服务：
+            ClusterIP(默认) - 在集群中的内部IP上公开服务。此类型使服务只能从集群中访问。
+            NodePort —— 使用NAT在群集中每个选定的节点的同一端口上显示该服务。使用 :可以从群集外部访问服务。建立 ClusterIP 的超集。
+            LoadBalancer —— 在当前云中创建外部负载平衡器(如果支持)，并为服务分配固定的外部IP。建立 NodePort 的超集。
+            ExternalName —— 使用任意名称显示该服务(由规范中的externalName 指定)，本过程通过使用该名称返回 CNAME 记录达成。无须使用代理。这种类型需要 v1.7 或更高版本的 kube-dns.
+
+        A服务可以跨一组Pod路由流量。服务是允许Pod在Kubernetes中死亡和负责而不影响应用程序的抽象层。
+        相关Pod的之间的发现和路由(如应用程序中的前端和后台组件)是有Kubernetes Services处理。
+        服务使用标签和选择器，匹配一组Pod，成为分组原语，此原语允许在Kubernetes中的对象进行逻辑运算。
+        标签是一对附加到对象的键值对，可以以多种方式使用：
+            指定用于开发、测试和生产的对象
+            嵌入版本标签
+            使用标签分类对象
+执行滚动更新：
+    目标：使用kubectl执行滚动更新
+
+    更新应用程序：
+        用户期望应用程序始终可用，并且希望开发人员每天部署新版本。在Kubernetes上通过更新(Rolling updates)达成。
+        Rolling updates允许通过使用心得Pods实例逐个更新来实现零停机的部署更新。新的Pods会被调度到可用资源的Node
+        节点上。
+
+        我们将应用程序扩展为多个实例。这也是执行更新但不影响应用的可用性所需的条件。默认情况下，更新期间最大数量的
+        不可用Pod以及最大数量的新Pod是一。这两个选项可以配置为数字或百分比(Pods)。在Kubernetes中，更新已版本化，
+        任何部署更新都可以恢复到以前的(稳定)版本。
+
+查看Pods和节点
+    目标：了解Kubernetes Pods;
+          了解Kubernetes Nodes;
+          已部署应用的故障排除。
+    Kubernetes Pods：
+        在模块2中创建部署时，Kubernetes创建了一个Pod来托管您的应用程序实例。Pod是一个Kubernetes资源抽象，
+        表示一个或多个应用容器组。以及一些用于这些容器的共享资源。这些资源包括：
+            共享存储，如卷
+            网络，作为唯一的集群IP地址
+            每个容器如何运行的信息，如容器镜像版本或要使用的特定端口
+        Pod模型可以理解为应用程序特定的逻辑主机，并且可以包含相对紧密耦合的不同应用程序容器。
+        例如，Pod可能包含带有Node.js应用程序的容器以及另一个要吸收Node.js web服务器提供的数据的不同容器。
+        Pod中的容器共享IP地址和端口空间，始终位于同一位置并且统一调度，并在相同的节点运行，共享上下文环境。
+
+        Pods是Kubernetes平台上原子级别的单元。在Kubernetes上创建一个部署时，该部署将在其中创建包含容器的
+        Pod(而不是直接创建容器)。每个Pod都绑定到它被调度的节点，并且始终在那里，直到(根据重启策略)或删除。
+        在节点故障的情况下，在集群中的其他可用节点调度相同的Pod。
+        Pods概览见image5.jpg
+
+        节点：
+            Pod总是运行在Node上。Node是Kubernetes的工作机器，可以是虚拟机或物理机，取决于在集群的安装情况。
+            每个节点有Master管理。一个节点可以有多个Pod，Kubernetes Master会自动处理调度集群各个节点的Pod.
+            Master在自动调度时，会考虑每个Node上的可用资源。
+            每个Kubernetes节点至少运行一下组件：
+                Kubelet是负责Kubernetes Master和所有节点之间通信的进程，它管理机器上运行的Pod和容器。
+                容器运行时(如Docker/rkt)负责从镜像仓库中拉取容器镜像，解包容器并运行应用程序。
+            节点概述见image6.jpg
+
+            使用kubectl进行故障排除：
+                kubectl命令：
+                    kubectl get:列出可用资源
+                    kubectl describe:显示有关资源的详细信息
+                    kubectl logs:从Pod中的容器打印日志
+                    kubectl exec:在Pod中容器执行命令
+                使用这些命令查看应用程序部署的时间，它们当前的状态，运行的位置及其配置。
+
+运行应用程序的多个实例：
+    目标：使用kubectl伸缩应用程序
+
+    应用程序伸缩：
+        在之前的模块中，我们创建了一个Deployment，然后通过Service让应用程序外部可见。
+        Deployment仅为我们的应用程序创建了一个Pod。当流量增加时，我们将需要扩展应用程序
+        以跟上用户需求。
+        Scaling是通过更改Deployment中的副本数量实现的。
+        扩展Deployment将确保重建新的Pods并将其调度到拥有可用资源的Node节点上，收缩会保证
+        Pods数量减少至新的所需状态。Kubernetes还支持Pods的自动缩放，收缩到零也是可以的，
+        此时他将终止指定Deployment的所有Pod。
+        一旦有应用程序的多个实例，您将能够滚动更新，而不会停止服务。
+
+Kubernetes对象管理：
+    kubectl命令行工具支持kubernetes对象集中不同创建和管理方法。
+    命令式的方式：
+        当使用命令式的命令时，用户直接对集群中的活动对象进行操作。用户提供kubectl命令的参数或标记进行操作。
+        例子：
+            通过创建 Deployment 对象来运行 nginx 容器的实例:
+            kubectl run nginx --image nginx
+            使用不同的语法做同样的事情:
+            kubectl create deployment nginx --image nginx
+    命令式对象配置：
+        在命令式对象配置中，kubectl命令指定操作(创建,替换等)，可选标志和至少一个文件名称。
+        指定的文件必须包含对象的完整定义以YAML或JSON格式。
+        例子：
+            创建对象定义配置文件:
+                kubectl create -f nginx.yaml
+            删除两个配置文件中定义的对象:
+                kubectl delete -f nginx.yaml -f redis.yaml
+            通过覆写实时配置更新配置文件中定义的对象:
+                kubectl replace -f nginx.yaml
+    声明式对象配置：
+        当使用声明式对象配置时，用户对本地存储的对象配置文件进行操作，但用户没有定义要对文件执行的操作。
+        通过kubectl自动检测每个对象进行创建、更新和删除操作。这样可以在目录层级上工作，因为不同的对象
+        可能需要不同的操作。
+        例子：
+            处理configs 目录中的所有对象配置文件，创建或修补(patch)活动对象:
+            kubectl apply -f configs/
+            递归处理目录:
+            kubectl apply -R -f configs/
+
+StatefulSet基本使用：
+    使用StatefulSets如何创建、删除、扩容/缩容和更新StatefulSets的Pods。
+    创建StatefulSet:
+
+示例：使用 Stateful Sets 部署 Cassandra:
+    在Kubernetes上部署一个云原生Cassandra的过程。云原生指的一个应用能够理解他运行在一个集群管理内部，
+    并且使用这个集群的管理基础设施来实现这个应用。
+    1、创建Cassandra Headless Service:
+        Kubernetes Service描述一组执行同样任务的Pods。在Kubernetes中，一个应用的原子调度单位是一个Pod:
+        一个或多个必须调度到相同主机上容器。这个Service用于在Kubernetes集群内部进行Cassandra客户端和
+        Cassandra之间的DNS查找。描述如下：
+                apiVersion: v1
+                kind: Service
+                metadata:
+                labels:
+                    app: cassandra
+                name: cassandra
+                spec:
+                clusterIP: None
+                ports:
+                    - port: 9042
+                selector:
+                    app: cassandra
+        为StatefulSet创建service:
+            kubectl create -f cassandra/cassandra-service.yaml
+        一下命令显示了service是否被创建成功：
+            kubectl get svc cassandra
+    2、使用StatefulSet创建Cassandra Ring环
+        创建 Cassandra StatefulSet 如下：
+            kubectl create -f cassandra/cassandra-statefulset.yaml
+    3、验证和修改Cassandra StatefulSet
+        
